@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Text;
+using iTextSharp.text;
 using iTextSharp.text.pdf;
 using Color = iTextSharp.text.Color;
 using Font = iTextSharp.text.Font;
@@ -17,9 +17,10 @@ namespace FillifyPdfConsole
             var pdfTemplate = string.Concat(AppDomain.CurrentDomain.BaseDirectory, fileBase, fileExtension);
             var newFile = string.Concat(AppDomain.CurrentDomain.BaseDirectory, fileBase, Guid.NewGuid().ToString("N"),fileExtension);
 
-            //ParseTheForm(pdfTemplate);
+            ParseTheForm(pdfTemplate);
             WriteToFormFields(pdfTemplate, newFile);
 
+            Console.WriteLine("File Created Successfully! Filname:{0}", newFile);
             Console.Write("Finished!");
             Console.Read();
         }
@@ -27,30 +28,39 @@ namespace FillifyPdfConsole
         private static void ParseTheForm(string source)
         {
             var pdfReader = new PdfReader(source);
-            var fields = pdfReader.AcroFields;
-
-            var sb = new StringBuilder();
-            foreach (var de in pdfReader.AcroFields.Fields.Keys)
+            
+            foreach (var key in pdfReader.AcroFields.Fields.Keys)
             {
-                sb.Append(de + Environment.NewLine);
+                Console.WriteLine(key);
             }
         }
 
         private static void WriteToFormFields(string source, string destination)
         {
-            var bfTimes = BaseFont.CreateFont(BaseFont.TIMES_ROMAN, BaseFont.CP1252, false);
-            var times = new Font(bfTimes, 12, Font.ITALIC, Color.BLACK);
+            var theFont = GetTahomaFont();
+            var font = new Font(theFont.BaseFont, 12, Font.ITALIC, Color.BLACK);
 
             var pdfReader = new PdfReader(source);
             pdfReader.RemoveUsageRights();
             var pdfStamper = new PdfStamper(pdfReader, new FileStream(destination, FileMode.Create));
-            AcroFields fields = pdfStamper.AcroFields;
-            
-            fields.SetFieldProperty("ShipName","textfont", times.BaseFont,null);
+            var fields = pdfStamper.AcroFields;
+
+            fields.SetFieldProperty("ShipName", "textfont", font.BaseFont, null);
             fields.SetField("ShipName", "Luke Skywalker");
 
             // close the pdf
             pdfStamper.Close();
+        }
+
+        public static Font GetTahomaFont()
+        {
+            const string fontName = "Tahoma";
+            if (!FontFactory.IsRegistered(fontName))
+            {
+                var fontPath = Environment.GetEnvironmentVariable("SystemRoot") + "\\fonts\\tahoma.ttf";
+                FontFactory.Register(fontPath);
+            }
+            return FontFactory.GetFont(fontName, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
         }
     }
 }
